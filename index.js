@@ -1,42 +1,51 @@
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  fetchLatestBaileysVersion
-} = require("@whiskeysockets/baileys");
+sock.ev.on("messages.upsert", async (msg) => {
+  const m = msg.messages[0];
+  if (!m.message) return;
 
-async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("auth");
+  const text =
+    m.message.conversation ||
+    m.message.extendedTextMessage?.text;
 
-  const { version } = await fetchLatestBaileysVersion();
+  const sender = m.key.remoteJid;
 
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    browser: ["Bot", "Chrome", "1.0.0"],
-    printQRInTerminal: false
-  });
+  if (!text) return;
 
-  sock.ev.on("creds.update", saveCreds);
+  console.log("📩 Message:", text);
 
-  sock.ev.on("connection.update", async (update) => {
-    const { connection, pairingCode } = update;
+  // 🧠 COMMAND SYSTEM
+  const command = text.toLowerCase().trim();
 
-    // 🔑 FORCE PAIRING CODE DISPLAY
-    if (pairingCode) {
-      console.log("\n🔑 YOUR PAIRING CODE:");
-      console.log(pairingCode);
-      console.log("\n👉 Go to WhatsApp > Linked Devices > Link with phone number");
-    }
+  // ⚡ Commands
+  if (command === "hi") {
+    await sock.sendMessage(sender, { text: "Hello 👋 I'm alive!" });
+  }
 
-    if (connection === "open") {
-      console.log("🤖 WhatsApp Bot Connected!");
-    }
+  else if (command === "ping") {
+    await sock.sendMessage(sender, { text: "pong ⚡" });
+  }
 
-    if (connection === "close") {
-      console.log("❌ Reconnecting...");
-      startBot();
-    }
-  });
-}
+  else if (command === "menu") {
+    await sock.sendMessage(sender, {
+      text: `📜 *BOT MENU*
 
-startBot();
+hi - greet bot
+ping - check if bot is alive
+menu - show commands
+time - current time`
+    });
+  }
+
+  else if (command === "time") {
+    const now = new Date().toLocaleTimeString();
+    await sock.sendMessage(sender, {
+      text: `⏰ Current time: ${now}`
+    });
+  }
+
+  // 🤖 Auto reply (non-command)
+  else {
+    await sock.sendMessage(sender, {
+      text: "🤖 I don't understand that yet. Type *menu*."
+    });
+  }
+});
