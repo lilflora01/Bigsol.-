@@ -17,14 +17,19 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds);
 
+  // 🔑 CONNECTION + FORCED PAIRING CODE
   sock.ev.on("connection.update", async (update) => {
-    const { connection, pairingCode } = update;
+    const { connection } = update;
 
-    // 🔑 Pairing Code (NO QR)
-    if (pairingCode) {
-      console.log("\n🔑 YOUR PAIRING CODE:");
-      console.log(pairingCode);
-      console.log("\n👉 WhatsApp > Linked Devices > Link with phone number\n");
+    if (connection === "connecting") {
+      try {
+        const code = await sock.requestPairingCode("234XXXXXXXXXX"); // 👈 PUT YOUR NUMBER
+        console.log("\n🔑 YOUR PAIRING CODE:");
+        console.log(code);
+        console.log("\n👉 WhatsApp > Linked Devices > Link with phone number\n");
+      } catch (err) {
+        console.log("❌ Pairing error:", err);
+      }
     }
 
     if (connection === "open") {
@@ -32,12 +37,12 @@ async function startBot() {
     }
 
     if (connection === "close") {
-      console.log("❌ Reconnecting...");
+      console.log("❌ Connection closed, restarting...");
       startBot();
     }
   });
 
-  // 🧠 COMMAND SYSTEM
+  // 🧠 MESSAGE + COMMAND SYSTEM
   sock.ev.on("messages.upsert", async (msg) => {
     const m = msg.messages[0];
     if (!m.message) return;
@@ -54,6 +59,7 @@ async function startBot() {
 
     console.log("📩 Message:", command);
 
+    // ⚡ COMMANDS
     if (command === "hi") {
       await sock.sendMessage(sender, { text: "Hello 👋 I'm alive!" });
     }
